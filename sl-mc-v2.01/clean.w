@@ -1,0 +1,1 @@
+del *~ *.cmo *.cmi *.cmx *.o mcparser.mli mcparser.ml mclexer.ml *.bak *.obj
