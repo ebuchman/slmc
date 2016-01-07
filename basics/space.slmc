@@ -1,0 +1,5 @@
+
+# how scope extension reduces the number of spaces
+defproc A(c) = (new s in c?(t).s!() | new s in c!(s) );
+check A(c) |= 2;
+check A(c) |= <>1;

@@ -1,0 +1,60 @@
+
+/* bb and bbz: channel of byte arrays and its done chan */
+/* r and rz: channel to broadcast result bytes, and its done chan */
+/* bc and bz: for the next row of byte arrays (half as many as bb)
+/* f: for ordering concashes at the next row */
+defproc Merklize(bb, bbz, r, rz) = new bc, bcz, f in ( f!() | Merklize2(bb, bbz, r, rz, bc, bcz, f) )
+
+and Merklize2(bb, bbz, r, rz, bc, bcz, f) = 
+	new a in (a!().
+	select{
+		bb?(b1, b1z).select{
+			bb?(b2, b2z).( new g in ( Q(b1, b1z, b2, b2z, bc, f, g) | Merklize2(bb, bbz, r, rz, bc, bcz, g) ) );
+			bbz?().f?().Copy(b1, b1z, r, rz) 
+		};
+		bbz?().( f?().bcz!() | Merklize(bc, bcz, r, rz) )
+	} | a?() )
+
+and Q(b1, b1z, b2, b2z, c, f, g) = new d, dz in ( Concash(b1, b1z, b2,  b2z, d, dz) | f?().c!(d, dz).g!() )
+
+and Concash(b1, b1z, b2, b2z, d, dz) = new c, cz in (Concat(b1, b1z, b2, b2z, c, cz) | Hash(c, cz, d, dz))
+
+and Concat(b1, b1z, b2, b2z, c, cz) = select{
+		b1?(b).c!(b).Concat(b1, b1z, b2, b2z, c, cz);
+		b1z?().Copy(b2, b2z, c, cz)	
+	}
+
+and Copy(b, bz, c, cz) = select{
+		b?(z).c!(z).Copy(b, bz, c, cz);
+		bz?().cz!()
+	}
+
+/* How to hash?! */
+and Hash(b, bz, c, cz) = Copy(b, bz, c, cz);
+
+		
+defproc Flush(a, az) = select{a?(z).Flush(a, az); az?().0};
+
+defproc RandomByteArray(b, bz) = new z in select{b!(z).RandomByteArray(b, bz); bz!().0};
+
+defproc RandomByteArraySequenceEven(bb, bbz) = 
+	new b1, b1z, b2, b2z in select{
+		bb!(b1, b1z).bb!(b2, b2z).(RandomByteArraySequenceEven(bb, bbz) 
+					| RandomByteArray(b1, b1z)
+					| RandomByteArray(b2, b2z));
+		bbz!()
+	};
+
+defproc TestMerkle(bb, bbz, r, rz) = 
+		Merklize(bb, bbz, r, rz) 
+		| Flush(r, rz)
+		| RandomByteArraySequenceEven(bb, bbz) ;
+
+
+
+check TestMerkle(bb, bbz, r, rz)  |=  <>true;
+check TestMerkle(bb, bbz, r, rz)  |=  eventually 0;
+check TestMerkle(bb, bbz, r, rz)  |=  eventually <rz!>true;
+
+TODO: merkle proof ...
+

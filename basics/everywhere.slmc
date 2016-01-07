@@ -1,0 +1,23 @@
+defproc S_ = new a in a!() ;
+defproc S = new a in (a!() | a?());
+defproc S__ = new a, b in (a!() | b!());
+
+defprop implStep = (1=> <>true);
+defprop everywhereStep = everywhere(<>true);
+defprop everywhere(A) = (false || (1 => A));
+/* 
+  everywhere(N) means "nowhere not A"
+  ie. we can't have a process (true) in parallel with 1 process that doesn't satisfy A
+		= not (true | not (1=>A));
+		= not (true | 1 and not A);
+
+*/
+
+check S_ |= implStep; /*false*/
+check S__ |= implStep; /*true*/
+check S |= implStep; /*true*/
+
+
+check S_ |= everywhereStep; /*false*/
+check S__ |= everywhereStep; /*false*/
+check S |= everywhereStep; /*true*/

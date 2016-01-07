@@ -1,0 +1,20 @@
+
+defproc Copy(b, bz, c, cz) = select{
+		b?(z).c!(z).Copy(b, bz, c, cz);
+		bz?().cz!()
+	};
+
+defproc Flush(a, az) = select{a?(z).Flush(a, az); az?().0};
+
+defproc RandomN(b, bz) = new z in select{b!(z).RandomN(b, bz); bz!().0};
+
+defproc TestCopy(c, cz)=
+	new b, bz in ( Copy(b, bz, c, cz) | RandomN(b, bz) |  Flush(c, cz));
+
+check TestCopy(c, cz) |= <>true;
+check TestCopy(c, cz) |= eventually 0;
+check TestCopy(c, cz) |= always [b!][c!]true;
+
+
+
+

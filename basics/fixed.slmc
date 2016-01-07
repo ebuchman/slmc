@@ -1,0 +1,13 @@
+
+
+defproc S_ = select{g!().S ; tau.0};
+defproc S__ = g!().tau.S;
+defproc S___ = r!().tau.S;
+defproc S = g!().S;
+
+defprop fire_forever = maxfix X.(< g! > true and [*]X);
+defprop fire_forever2 = always <g!>true;
+defprop fire_forever3 = maxfix X.(<g!>true);
+
+check S_ |= fire_forever2;
+check S_ |= fire_forever3;

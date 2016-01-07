@@ -1,0 +1,22 @@
+defproc S_ = new a in (b!() | b?());
+defproc S = new a in (a!() | a?());
+
+check S_ |= hidden x.<>true; /*true*/
+check S_ |= hidden x.<x>true; /*false*/
+check S_ |= hidden x.<b>true; /*true*/
+check S_ |= not (hidden x.true) and <b>true; /*false*/
+
+check S |= hidden x.<>true; /*true*/
+check S |= hidden x.<x>true; /*true*/
+check S |= hidden x.<b>true; /*false*/
+check S |= hidden x.hidden y.true; /*true --- hmm*/
+check S |= hidden x.hidden y.<y>true; /*true --- hmm*/
+
+
+defproc S_ = new a,b in (b!()|b?());
+defproc S  = new a,b in (a!()|a?());
+
+check S_ |= hidden x.<>true;
+check S_ |= hidden x.hidden y.<>true;
+check S_ |= hidden x.hidden y.<x>true;
+check S_ |= hidden x.hidden y.<y>true;

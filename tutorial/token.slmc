@@ -1,0 +1,48 @@
+/* TOKEN RING SYSTEM */
+
+defproc Exit(inCh, outCh) = 
+	select {[outCh=inCh].0; outCh!(inCh).0};
+
+defproc IdleNode(inCh, outCh) =
+	inCh?(newInCh).TokenOwner(newInCh, outCh)
+
+and TokenOwner(inCh, outCh) = 
+	select {
+		tau.Exit(inCh, outCh);
+		outCh!(outCh).IdleNode(inCh, outCh)};
+
+defproc System = 
+	(new l1,l2,l3,l4,l5 in 
+		(IdleNode(l1,l2) | 
+		IdleNode(l2,l3) | 
+		IdleNode(l3,l4) | 
+		IdleNode(l4,l5) | 
+		TokenOwner(l5,l1)));
+
+/* PROPERTIES */
+
+check System |= always eventually 0;
+
+/***/
+
+defprop exiting(inl, outl) = 
+	1 and (((inl != outl) or <>0) and < outl!(inl) > 0);
+
+defprop node(inl, outl) = 
+	1 and 
+	(exiting(inl, outl) or
+	(maxfix X(inLnk).
+		((< inLnk?(newInLnk) > X(newInLnk))
+		or ((<> exiting(inLnk,outl))
+			and (< outl!(outl) > X(inLnk)))))
+	(inl));
+
+defprop ring = 
+	0 or 
+	(hidden lnk.
+	(minfix Y(x).
+		(node(x,lnk) or
+		(hidden y. (node(x,y) | Y(y)))))
+	(lnk));
+
+check System |= always ring;

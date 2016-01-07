@@ -1,0 +1,13 @@
+defproc 
+	EchoServer(chan) =
+		chan?(data, reply).(reply!(data).0 | EchoServer(chan))
+  and
+	Client(chan) = 
+		new cb in
+		  (chan!(data, cb) | cb?(x).Client(chan))
+  and
+	System() = 
+		new p in (Client(p) | EchoServer(p));
+
+
+

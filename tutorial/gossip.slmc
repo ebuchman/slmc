@@ -1,0 +1,60 @@
+defproc 
+	Gossiper(info) = select{ 
+				gossip!(info).Gossiper(info);
+				dont!().Gossiper(info)
+	};
+
+defproc
+	Listener = gossip?(info).Gossiper(info);
+
+defproc Dummy = dont?().Dummy;
+
+defproc System = 
+	new secret in 
+	(
+		Gossiper(secret)
+		| Listener
+		| Listener
+		| Listener
+	);
+
+/* PROPERTIES */
+
+check System |= 4 and (<> 3) and (<><> 2) and (<><><>1);
+
+check System |= eventually always 2;
+
+/***/
+
+/*
+reminder
+
+defproc S = x!().0 | y!().0;
+
+check S |= 1; (false)
+
+check S |= true | 1; (true)
+
+*/
+
+defprop everywhere(A) = (false || (1 => A));
+
+defprop everywhere(A) = not (true | not (1 => A));
+
+defprop everywhere(A) = not (true | (1 and not A)); 
+
+defprop everybody_knows(secret) = everywhere(@secret);
+
+defprop everybody_gets_to_know = hidden secret.eventually everybody_knows(secret);
+
+check System |= everybody_gets_to_know;
+
+/* ------ */
+
+defprop gossiper_forever = maxfix X.(< gossip! > true and [*]X);
+
+defprop all_gossipers = eventually 
+				inside everywhere(gossiper_forever);
+
+check System |= all_gossipers;
+
