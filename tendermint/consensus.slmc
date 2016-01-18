@@ -1,0 +1,81 @@
+
+/* start simple with one validator 
+   each validator runs an instance of this routine, and they must stay synced!
+*/
+
+/* TODO: use an array with a done chan */
+defproc ListValidators(vOrder) = vOrder!(val1);
+
+defproc RoundRobinRoutine(vOrder) = vOrder!(val1).RoundRobinRoutine(vOrder);
+
+defproc BroadcastProposal(item) = new vOrder in (ListValidators(vOrder) | BroadcastProposalInternal(vOrder, item))
+and BroadcastProposalInternal(vOrder, item) = vOrder?(val).val?(x, proposalCh, y).proposalCh!(item).BroadcastProposalInternal(vOrder, item);
+
+defproc BroadcastVote(item) = new vOrder in (ListValidators(vOrder) | BroadcastVoteInternal(vOrder, item))
+and BroadcastVoteInternal(vOrder, item) = vOrder?(val).val?(x, y, voteCh).voteCh!(item).BroadcastVoteInternal(vOrder, item);
+
+
+/* ---------------------------------------------------------------*/
+/* we simulate a struct by firing all the fields over the main channel */
+/* In this case, Validator has three fields: Input, State, Proposer. The first two are structs. The last has a process iterating over the order */
+
+defproc ValidatorStruct(me) = new vOrder, inputs, state in ( 
+		ValidatorStructInternal(me, vOrder, inputs, state)  
+		| InputStruct(inputs) 
+		| StateStruct(state) } 
+		| RoundRobinRoutine(vOrder) )
+
+and ValidatorStructInternal(me, vOrder, inputs, state) = me!(vOrder, inputs, state).ValidatorStructInternal(me, vOrder, inputs, state);
+
+/* inputs come in as proposals, blocks, votes */
+and InputStruct(inputs) = new proposalCh, blockPartCh, voteCh in InputStructInternal(inputs, proposalCh, blockPartCh, voteCh)
+
+and InputStructInternal(inputs, proposalCh, blockPartCh, voteCh) = inputs!(proposalCh, blockPartCh, voteCh).InputStructInternal(inputs, proposalCh, blockPartCh, voteCh)
+
+/* the state maintains the votes for all rounds at a given height.
+   when a vote is received, check if that vote's round has a 2/3-any or 2/3-maj
+*/
+and StateStruct(state) = new roundVotes in (StateStructInternal(state, roundVotes) | RoundVoteStruct(roundVotes))
+
+and StateStructInternal(state, roundVotes) = state!(roundVotes).StateStructInternal(state, roundVotes)
+
+and RoundVotesStruct(roundVotes) = 
+
+and RoundVoteStructInternal(roundVotes)
+
+and GetRoundVote(roundVotes, roundN, result) = roundN?(x, z).x?
+
+......
+
+
+
+
+/* ---------------------------------------------------------------*/
+
+
+
+/* Start the validator by initializing the struct and entering Height 0 */
+
+defproc StartValidator(me) = EnterNewHeight(me, zero) | ValidatorStruct(me) | ReceiveRoutine(me)
+
+and ReceiveRoutine(me) = me?(vOrder, proposalCh, voteCh).(ReceiveRoutine(me) |  select{
+	voteCh?(vote).AddVote(me, vote);
+	proposalCh?(proposal).AddProposal(me, proposal)
+} )
+
+/* A dummy step to clear/set values. and go to round 0 */
+and EnterNewHeight(me, height) = EnterNewRound(me, height, zero)
+
+/* Get next proposer, EnterPropose with it */
+and EnterNewRound(me, height, round) = me?(vOrder, x, y).vOrder?(proposer).EnterPropose(me, height, round, proposer)
+
+and EnterPropose(me, height, round, proposer) = [me = proposer].Propose(me, height, round)
+
+
+/* create a new block and broadcast it. `newBlock!(me)` substitutes for the signature, for now */
+and Propose(me, height, round) = new newProposal in (BroadcastProposal(newProposal) | newProposal!(me, height, round) | EnterPrevote(me, height, round, newProposal) )
+
+and EnterPrevote(me, height, round, newProposal) = new myPrevote in (BroadcastVote(myPrevote) | myPrevote!(me, newProposal) );
+
+
+

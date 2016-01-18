@@ -1,0 +1,56 @@
+
+
+/* Pair(n) will make two channels avaialble over n */
+/* Typically used for integers, arrays, etc. */
+defproc Pair(n) = new x, z in PairRecursive(n, x, z)
+and PairRecursive(n, x, z) = n!(x, z).PairRecursive(n, x, z);
+
+defproc Zero(n) = n?(x, z).z!.0
+
+and Copy(n, result) = n?(nx, nz).result?(rx, rz).(select {
+	nx?(c).rx!(c).Copy(n, result);
+	nz?(c).rz!(c)
+})
+
+/* fire on result and copy n over
+and Succ(n, result) = new next in result?(x, z).x!(next).Copy(n, result)
+
+and Add(n, m, result) = n?(nx, nz).m?(mx, mz).result?(rx, rz).(select{
+	nx?(c).rx!(c).Add(n, m, result);
+	nz?(c).Copy(m, result)
+})
+
+/* assumes n >= m */
+and Sub(n, m, result) = n?(nx, nz).m?(mx, mz).result?(rx, rz)select{
+	nx?(o).select{
+		mx?(o).Sub(n, m, result);
+		mz?(o).Copy(n, result)
+	};
+	nz?(o).select{
+		mz?(o).rz!(o); /* n == m*/
+		mx?(o).rz!(o) /* note this never happens if n >= m */
+	}
+}
+
+and Equal(n, m, rTrue, rFalse) = n?(nx, nz).m?(mx, mz).select{
+	nx?(o).select{
+		mx?(o).Equal(n, m, result);
+		mz?(o).rFalse!(o).0
+	};
+	nz?(o).select{
+		mz?(o).rTrue!(o).0; /* n == m*/
+		mx?(o).rFalse!(o).0;
+	}
+}
+
+and GreaterThan(n, m, rTrue, rFalse) = n?(nx, nz).m?(mx, mz).select{
+	nx?(o).select{
+		mx?(o).Equal(n, m, result);
+		mz?(o).rTrue!(o).0
+	};
+	nz?(o).rFalse!(o).0
+}
+
+
+
+
