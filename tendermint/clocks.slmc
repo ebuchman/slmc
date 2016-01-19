@@ -1,0 +1,22 @@
+
+/*
+	N processes
+	each process 
+		- has a counter
+		- has a request queue
+		- randomly requests the resource
+		- responds to requests
+*/
+
+defproc System(n) = n?(x, z).select{
+
+defproc PersistentNodesArray
+
+defproc NodesArray(n) = n?(x, z).(new node in select{
+	(x!(node).NodesArray(n) | 
+	z!(zero).0
+};
+
+defproc Process(msgQueue) = new counter, requestQueue in ( 
+	Zero(counter) 
+	| RequestResourceRoutine(request

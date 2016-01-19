@@ -1,13 +1,59 @@
-
+/* ----------------------------------------------  */
+/* Fundamentals */
 
 /* Pair(n) will make two channels avaialble over n */
 /* Typically used for integers, arrays, etc. */
 defproc Pair(n) = new x, z in PairRecursive(n, x, z)
 and PairRecursive(n, x, z) = n!(x, z).PairRecursive(n, x, z);
 
-defproc Zero(n) = n?(x, z).z!.0
+/* All integer functions take Pairs */
 
-and Copy(n, result) = n?(nx, nz).result?(rx, rz).(select {
+/* Convenient */
+defproc Zero(n) = n?(x, z).z!(zero)
+and One(n) = n?(x, z).x!(zero).z!(zero)
+and Two(n) = n?(x, z).x!(zero).x!(zero).z!(zero);
+
+/* Random Number */
+defproc Random(n) = new item in n?(x, z).select{
+	x!(item).Random(n);
+	z!(item)
+};
+
+/* ----------------------------------------------  */
+/* Persistence */
+
+/* duplicate n onto r1 and r2 */
+defproc Duplicate(n, r1, r2) = new wait in (
+	wait!().0
+	| DuplicateRecursive(n, r1, r2, wait))
+
+and DuplicateRecursive(n, r1, r2, wait1) = new wait2 in n?(x, z).r1?(r1x, r1z).r2?(r2x, r2z).select{
+	x?(c).(r1x!(c).DuplicateRecursive(n, r1, r2, wait2)
+		| wait1?().r2x!(x).wait2!() );
+	z?(c).(r1z!(c)
+		| wait1?().r2z!(c))
+};
+
+/* Make a number or array on a Pair persistent. 
+The number is read off n and fired on result,
+while also fired on an internal chan via an ordered set of processes.
+When the result has been consumed, the internal number is copied back onto the result */
+defproc PersistentN(n, result) = new internal, wait in (
+		wait!().0
+		| Pair(internal)
+		| PersistentNRecursive(n, result, internal, wait)  )
+
+and PersistentNRecursive(n, result, internal, wait1) = new wait2 in 
+	n?(x, z).result?(rx, rz).internal?(ix, iz).select{
+		x?(c).( rx!(c).PersistentNRecursive(n, result, internal, wait2) 
+			| wait1?().ix!(c).wait2!().0);
+		z?(c).(rz!(c) 
+			| wait1?().(iz!(c) | Copy(i, result)))};
+
+/* ----------------------------------------------  */
+/* Arithmetic */
+
+defproc Copy(n, result) = n?(nx, nz).result?(rx, rz).(select {
 	nx?(c).rx!(c).Copy(n, result);
 	nz?(c).rz!(c)
 })
@@ -15,13 +61,13 @@ and Copy(n, result) = n?(nx, nz).result?(rx, rz).(select {
 /* fire on result and copy n over
 and Succ(n, result) = new next in result?(x, z).x!(next).Copy(n, result)
 
-and Add(n, m, result) = n?(nx, nz).m?(mx, mz).result?(rx, rz).(select{
+and Add(n, m, result) = n?(nx, nz).m?(mx, mz).result?(rx, rz).select{
 	nx?(c).rx!(c).Add(n, m, result);
 	nz?(c).Copy(m, result)
-})
+}
 
 /* assumes n >= m */
-and Sub(n, m, result) = n?(nx, nz).m?(mx, mz).result?(rx, rz)select{
+and Sub(n, m, result) = n?(nx, nz).m?(mx, mz).result?(rx, rz).select{
 	nx?(o).select{
 		mx?(o).Sub(n, m, result);
 		mz?(o).Copy(n, result)
@@ -32,25 +78,27 @@ and Sub(n, m, result) = n?(nx, nz).m?(mx, mz).result?(rx, rz)select{
 	}
 }
 
+/* ----------------------------------------------  */
+/* Comparison */
+
 and Equal(n, m, rTrue, rFalse) = n?(nx, nz).m?(mx, mz).select{
 	nx?(o).select{
-		mx?(o).Equal(n, m, result);
+		mx?(o).Equal(n, m, rTrue, rFalse);
 		mz?(o).rFalse!(o).0
 	};
 	nz?(o).select{
 		mz?(o).rTrue!(o).0; /* n == m*/
-		mx?(o).rFalse!(o).0;
+		mx?(o).rFalse!(o).0
 	}
 }
 
 and GreaterThan(n, m, rTrue, rFalse) = n?(nx, nz).m?(mx, mz).select{
 	nx?(o).select{
-		mx?(o).Equal(n, m, result);
+		mx?(o).Equal(n, m, rTrue, rFalse);
 		mz?(o).rTrue!(o).0
 	};
 	nz?(o).rFalse!(o).0
-}
-
+};
 
 
 

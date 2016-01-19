@@ -1,0 +1,79 @@
+
+defprop isTrue(t) = eventually <t!>true;
+
+/* Pair(n) will make two channels perpetually avaialble over n (ie for integers)*/
+defproc Pair(n) = new x, z in PairRecursive(n, x, z)
+and PairRecursive(n, x, z) = n!(x, z).PairRecursive(n, x, z);
+
+/* Zero */
+defproc Zero(n) = n?(x, z).z!(zero);
+defproc Two(n) = n?(x, z).x!(zero).x!(zero).z!(zero);
+
+/* Random Number */
+defproc Random(n) = new item in n?(x, z).select{
+	x!(item).Random(n);
+	z!(item)
+};
+
+defproc Flush(n) = n?(x, z).select{
+	x?(c).Flush(n);
+	z?(c)
+};
+
+/* check if n and m are equal */
+defproc Equal(n, m, rTrue, rFalse) = n?(nx, nz).m?(mx, mz).select{
+	nx?(o).select{
+		mx?(o).Equal(n, m, rTrue, rFalse);
+		mz?(o).( rFalse!(o) | Flush(n) )
+	};
+	nz?(o).select{
+		mz?(o).rTrue!(o); /* n == m*/
+		mx?(o).( rFalse!(o) | Flush(m) )
+	}
+};
+
+/* duplicate n onto r1 and r2 where r1 and r2 can be read in any order*/
+defproc DuplicateFree(n, r1, r2) = new preR1, preR2 in (
+	preR1!()
+	| preR2!()
+	| DuplicateRecursiveFree(n, r1, r2, preR1, preR2))
+
+and DuplicateRecursiveFree(n, r1, r2, preR1, preR2) = new postR1, postR2 in 
+	n?(x, z).r1?(r1x, r1z).r2?(r2x, r2z).select{
+		x?(c).(DuplicateRecursiveFree(n, r1, r2, postR1, postR2)
+			| preR1?().r1x!(c).postR1!()
+			| preR2?().r2x!(c).postR2!() );
+		z?(c).(preR1?().r1z!(c)
+			| preR2?().r2z!(c))};
+
+
+/* duplicate n onto r1 and r2 where r1 must be read (or else flushed) before r2 */
+defproc Duplicate(n, r1, r2) = new pre in (
+	pre!()
+	| DuplicateRecursive(n, r1, r2, pre ))
+
+and DuplicateRecursive(n, r1, r2, pre) = new post in
+	n?(x, z).r1?(r1x, r1z).r2?(r2x, r2z).select{
+		x?(c).(r1x!(c).DuplicateRecursive(n, r1, r2, post)
+			| pre?().r2x!(c).post!() ) ;
+		z?(c).(r1z!(c)
+			| pre?().r2z!(c))};
+
+/* ------------------------------------- */
+/* test duplicate */
+
+defproc TestDuplicate1(t, f) = new n, n1, n2 in (
+	 Pair(n) | Pair(n1) | Pair(n2)  
+	| Random(n)
+	| Duplicate(n, n1, n2)
+	| Equal(n1, n2, t, f));
+
+defproc TestDuplicateFree1(t, f) = new n, n1, n2 in (
+	 Pair(n) | Pair(n1) | Pair(n2)  
+	| Random(n) /* if we use Two(n) here instead, we're fine */
+	| DuplicateFree(n, n1, n2)
+	| Equal(n1, n2, t, f));
+
+
+check TestDuplicate1(t, f) |= isTrue(t);
+check TestDuplicateFree1(t, f) |= isTrue(t);

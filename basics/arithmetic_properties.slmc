@@ -1,0 +1,63 @@
+
+defprop isTrue(t) = eventually <t!>true;
+
+
+/* ----------------------------------------------  */
+/* Test Equal function*/
+
+/* we can only fire on t or f, not both! */
+defproc TestEquals(t, f) = new n, m in (Pair(n) | Pair(m) | Random(n) | Random(m) | Equal(n, m, t, f));
+check TestEquals(t, f) |= eventually (<t!>(not eventually <f!>true) or <f!>(not eventually <t!>true));
+
+defproc ZeroEqualsZero(t, f) = new z1, z2 in ( Pair(z1) | Pair(z2) | Zero(z1) | Zero(z2) | Equal(z1, z2, t, f) );
+check ZeroEqualsZero(t, f) |= isTrue(t);
+
+defproc TwoEqualsTwo(t, f) = new z1, z2 in ( Pair(z1) | Pair(z2) | Two(z1) | Two(z2) | Equal(z1, z2, t, f) );
+check TwoEqualsTwo(t, f) |= isTrue(t);
+
+defproc TwoNotEqualsOne(t, f) = new z1, z2 in ( Pair(z1) | Pair(z2) | Two(z1) | One(z2) | Equal(z1, z2, t, f) );
+check TwoNotEqualsOne(t, f) |= isTrue(f);
+
+
+/* ----------------------------------------------  */
+/* Test Duplicate */
+
+defproc RandomDuplicate(n, m) = new r in (
+	Pair(n) | Pair(m) | Pair(r)
+	| Random(r)
+	| Duplicate(r, n, m));
+
+defproc TestDuplicate(t, f) = new n, m in ( RandomDuplicate(n, m) | Equal(n, m, t, f) );
+
+check TestDuplicate(t, f) |= isTrue(t);
+
+/* ----------------------------------------------  */
+/* Test Persistence */
+
+defproc RandomPersistence(n, r) = new m, m2 in (
+	Pair(m) | Pair(n) | Pair(r) | Pair(m2)
+	| Random(m) 
+	| Duplicate(m, n, m2)
+	| PersistentN(m2, r));
+
+defproc TestPersistence1(t, f) = new n, m, tt, ff in (
+	RandomPersistence(n, m) 
+	| Equal(n, m, t, f)); 
+
+defproc TestPersistence2(t, f) = new n, m, tt, ff in (
+	RandomPersistence(n, m) 
+	| Equal(n, m, tt, ff)
+	| tt?().t!()); 
+
+defproc TestPersistence3(t, f) = new n, m, tt, ff in (
+	RandomPersistence(n, m) 
+	| Equal(n, m, tt, ff)
+	| tt?().Equal(n, m, t, f)); 
+
+check TestPersistence1(t, f) |= isTrue(t);
+check TestPersistence2(t, f) |= isTrue(t);
+
+
+
+
+
